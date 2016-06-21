@@ -1,0 +1,10 @@
+target 'testMySpecs' do
+
+
+
+#pod 'LBLibrary', :git =>'https://yandeguangzy@bitbucket.org/lubao/podtest.git'
+
+
+pod 'AFNetworking', '~> 2.6.3'
+
+end

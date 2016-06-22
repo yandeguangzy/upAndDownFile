@@ -17,6 +17,9 @@
 
 @property (nonatomic, strong) NSMutableArray <Model *>*isDownLoads;
 
-- (NSURLSessionDownloadTask *) downloadWithM:(Model *)model;
+- (void) downloadWithM:(Model *)model
+               success:(void (^)(int Id))success
+               failure:(void (^)(int Id))fail
+              progress:(void (^)(int Id,NSURLSessionDownloadTask *task))progress;
 
 @end

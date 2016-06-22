@@ -20,7 +20,9 @@
 @property(nonatomic,strong) NSMutableArray *models;
 @end
 
-@implementation ViewController
+@implementation ViewController{
+    LBSessionManager *sessionManager;
+}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -54,16 +56,17 @@
     _progress.progress = 0.0f;
     _progress1.progress = 0.0f;
     _progress2.progress = 0.0f;
-    LBSessionManager *manager = [LBSessionManager shardLBSessionManager];
-    manager.models = [[NSArray alloc] initWithArray:(NSArray *)_models];
+    
+    sessionManager = [[LBSessionManager alloc] init];
+    sessionManager.models = [[NSArray alloc] initWithArray:(NSArray *)_models];
+    sessionManager.MaxCount = 2;
 }
 
 
 
 
 - (IBAction)strat:(id)sender {
-    LBSessionManager *manager = [LBSessionManager shardLBSessionManager];
-    [manager downloadWithModels:_models success:^(int Id) {
+    [sessionManager downloadWithModels:_models success:^(int Id) {
         NSLog(@"成功:%d",Id);
     } failure:^(int Id) {
         NSLog(@"失败:%d",Id);
@@ -81,17 +84,17 @@
             default:
                 break;
         }
+    } allDownCompletion:^{
+        NSLog(@"全部下载完成");
     }];
     
 }
 - (IBAction)pause:(id)sender {
-    LBSessionManager *manager = [LBSessionManager shardLBSessionManager];
     
-    [manager LBcontinue];
+    [sessionManager LBcontinue];
 }
 - (IBAction)stop:(id)sender {
-    LBSessionManager *manager = [LBSessionManager shardLBSessionManager];
-    [manager cancelAllRequest];
+    [sessionManager cancelAllRequest];
 }
 
 - (void)didReceiveMemoryWarning {

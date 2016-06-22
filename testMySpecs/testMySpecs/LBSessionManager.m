@@ -10,168 +10,128 @@
 #import "AFNetworking.h"
 #import "DownLoad.h"
 
+@interface LBSessionManager ()
+
+@property (nonatomic, strong) NSMutableArray <Model *> *downingArray;
+
+@end
+
 @implementation LBSessionManager{
     AFURLSessionManager *session1;
 }
 
-static LBSessionManager *handler = nil;
+//static LBSessionManager *handler = nil;
+//
+//
+//
+//+ (instancetype) shardLBSessionManager{
+//    static dispatch_once_t onceToken;
+//    dispatch_once(&onceToken, ^{
+//        handler = [[LBSessionManager alloc] init];
+//        handler.queue = [[NSOperationQueue alloc]init];
+//        
+//    });
+//    return handler;
+//}
 
-
-
-+ (instancetype) shardLBSessionManager{
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        handler = [[LBSessionManager alloc] init];
-        handler.queue = [[NSOperationQueue alloc]init];
-    });
-    return handler;
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        self.downingArray = [[NSMutableArray alloc] init];
+    }
+    return self;
 }
 
-- (void) downloadWithUrl:(NSString *)url
-              saveToPath:(NSString *)saveToPath
-                 success:(void (^)(int Id))success
-                 failure:(void (^)(int Id))fail{
-//    NSInvocationOperation *operation = [[NSInvocationOperation alloc]initWithTarget:self
-//                                                                           selector:@selector(downloadImage:)
-//                                                                             object:kURL];
-//    NSOperationQueue *queue = [[NSOperationQueue alloc]init];
-//    [queue addOperation:operation];
-}
 
 - (void) downloadWithModels:(NSArray *)models
                     success:(void (^)(int Id))success
                     failure:(void (^)(int Id))fail
-                    progress:(void (^)(int, NSURLSessionDownloadTask *task))progress{
+                    progress:(void (^)(int, NSURLSessionDownloadTask *task))progress allDownCompletion:(void (^)())allDownCompletion{
     
     
     self.successBlock = success;
     self.failBlock = fail;
     self.progressBlock = progress;
+    self.allDownCompletion = allDownCompletion;
     //self.models = [[NSArray alloc] initWithArray:models];
     
-    [self.queue setMaxConcurrentOperationCount:1];
+    //[self.queue setMaxConcurrentOperationCount:1];
+    
+    
     for (Model *model in self.models){
+        
+        if(self.downingArray.count >= _MaxCount){
+            break;
+        }
+        
         NSInvocationOperation *operation = [[NSInvocationOperation alloc]initWithTarget:self selector:@selector(downloadWithModel:) object:model];
         [self.queue addOperation:operation];
-    }
-    
-}
-
-- (void) downloadWithModel1:(Model *)model{
-    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[NSString stringWithFormat:@"%d",model.Id]];
-    configuration.TLSMaximumSupportedProtocol = 1;
-    
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration
-                                                 delegate:self
-                                            delegateQueue:nil];
-    NSURLSessionDownloadTask *downTask = [session downloadTaskWithURL:[NSURL URLWithString:model.url]];
-    
-    [downTask resume];
-    
-}
-
--(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite{
-    
-    if (totalBytesExpectedToWrite == NSURLSessionTransferSizeUnknown) {
-        NSLog(@"Unknown transfer size");
-    }
-    else{
         
-        [[NSOperationQueue mainQueue] addOperationWithBlock:^{
-            
-            NSLog(@"%@,%ld,%lld,%lld,%lld",session.configuration.identifier,downloadTask.taskIdentifier,bytesWritten,totalBytesWritten,totalBytesExpectedToWrite);
-            
-            self.progressBlock([session.configuration.identifier intValue],downloadTask);
-            
-
-        }];
+        [self.downingArray addObject:model];
     }
+    
 }
-
-
-
-
 
 - (void) downloadWithModel:(Model *)model{
-    if(model.downloadComplete || model.isDownloading){
+    DownLoad *download = [[DownLoad alloc] init];
+    __weak typeof(self) weakSelf = self;
+    [download downloadWithM:model success:^(int Id) {
+        weakSelf.successBlock(Id);
+        [weakSelf.downingArray removeObject:model];
+        [weakSelf addOperation];
+        
+    } failure:^(int Id) {
+        weakSelf.failBlock(Id);
+        [weakSelf.downingArray removeObject:model];
+        [weakSelf addOperation];
+        
+    } progress:^(int Id, NSURLSessionDownloadTask *task) {
+        weakSelf.progressBlock(Id,task);
+    }];
+}
+
+- (void) addOperation{
+    if(self.downingArray.count >= _MaxCount){
         return;
     }
-    
-    
-    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:model.filaName];
-    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:model.url]];
-    
-    AFURLSessionManager *session = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
-    //session1 = session;
-    if(1){
-        model.downloadTask = [session downloadTaskWithRequest:request progress:nil destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-            return [NSURL fileURLWithPath:model.SavePath];
-        } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-            if(error){
-                NSLog(@"%@",error);
-                self.failBlock(model.Id);
-                model.downTaskResumeData = nil;
-            }else{
-                NSLog(@"%@,%@",response,filePath);
-                self.successBlock(model.Id);
-                model.downloadComplete = YES;
-            }
-            model.isDownloading = NO;
-            
-        }];
-    }else{
-        
-        model.downloadTask = [session downloadTaskWithResumeData:model.downTaskResumeData progress:nil destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-            return [NSURL fileURLWithPath:model.SavePath];
-        } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-            if(error){
-                NSLog(@"%@",error);
-                self.failBlock(model.Id);
-                model.downTaskResumeData = nil;
-            }else{
-                NSLog(@"%@,%@",response,filePath);
-                self.successBlock(model.Id);
-                model.downloadComplete = YES;
-            }
-            model.isDownloading = NO;
-        }];
+    BOOL allDown = YES;
+    for (Model *model in self.models){
+        if(model.downloadComplete == NO && model.isDownloading == NO&& self.downingArray.count < _MaxCount){
+            NSInvocationOperation *operation = [[NSInvocationOperation alloc]initWithTarget:self selector:@selector(downloadWithModel:) object:model];
+            allDown = NO;
+            [self.queue addOperation:operation];
+            [self.downingArray addObject:model];
+            break;
+        }
     }
-    
-    [session setDownloadTaskDidWriteDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDownloadTask * _Nonnull downloadTask, int64_t bytesWritten, int64_t totalBytesWritten, int64_t totalBytesExpectedToWrite) {
-        NSLog(@"%@,%ld,%lld,%lld,%lld",session.configuration.identifier,downloadTask.taskIdentifier,bytesWritten,totalBytesWritten,totalBytesExpectedToWrite);
-        self.progressBlock(model.Id,model.downloadTask);
-    }];
-    
-    [model.downloadTask resume];
-    model.isDownloading = YES;
-    
+    if(allDown){
+        self.allDownCompletion();
+    }
+}
+
+- (NSMutableArray *) downingArray{
+    if(!_downingArray){
+        _downingArray = [[NSMutableArray alloc] init];
+    }
+    return _downingArray;
 }
 
 - (void) cancelAllRequest{
-    
-    for (Model *model in self.models){
+    for (Model *model in self.downingArray){
         if(model.isDownloading && !model.downloadComplete){
             [model.downloadTask suspend];
             model.isDownloading = NO;
-            
-//            [model.downloadTask cancelByProducingResumeData:^(NSData * _Nullable resumeData) {
-//                if(resumeData != nil){
-//                    model.downTaskResumeData = resumeData;
-//                }
-//                model.isDownloading = NO;
-//            }];
-            
+            [self.queue cancelAllOperations];
         }
     }
-    //[session1 invalidateSessionCancelingTasks:YES];
-    [self.queue cancelAllOperations];
 }
 
 - (void)dealloc{
     NSLog(@"dealloc");
 }
 - (void) LBcontinue{
-    for (Model *model in self.models){
+    for (Model *model in self.downingArray){
         if(!model.isDownloading && !model.downloadComplete){
             [model.downloadTask resume];
             model.isDownloading = YES;

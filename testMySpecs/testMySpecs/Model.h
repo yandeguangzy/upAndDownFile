@@ -24,10 +24,10 @@
 
 @property (nonatomic, strong) NSData *downTaskResumeData;
 
-@property (nonatomic) BOOL isDownloading;
+@property (nonatomic) BOOL inQueue;
 
-@property (nonatomic) BOOL downloadComplete;
+@property (nonatomic) BOOL loadComplete;
 
-
+@property (nonatomic) BOOL fail;
 
 @end

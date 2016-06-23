@@ -22,4 +22,8 @@
                failure:(void (^)(int Id))fail
               progress:(void (^)(int Id,NSURLSessionDownloadTask *task))progress;
 
+- (void) uploadWithM:(Model *)model
+               success:(void (^)(int Id))success
+               failure:(void (^)(int Id))fail
+              progress:(void (^)(int Id,NSURLSessionDownloadTask *task))progress;
 @end

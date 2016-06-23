@@ -58,14 +58,57 @@
     _progress2.progress = 0.0f;
     
     sessionManager = [[LBSessionManager alloc] init];
-    sessionManager.models = [[NSArray alloc] initWithArray:(NSArray *)_models];
-    sessionManager.MaxCount = 2;
+    sessionManager.MaxCount = 1;
 }
 
 
 
 
 - (IBAction)strat:(id)sender {
+    [sessionManager uploadWithModels:nil Info:nil Infosuccess:^(NSError *error, AFHTTPRequestOperation *operation) {
+        NSLog(@"回调二");
+    } success:^(int Id) {
+        
+    } failure:^(int Id) {
+        
+    } progress:^(NSInteger failCount, NSInteger completeCount, NSInteger totoalCount) {
+        
+    }];
+    return;
+    [sessionManager downloadWithModels:_models success:^(int Id) {
+        NSLog(@"成功:%d",Id);
+    } failure:^(int Id) {
+        NSLog(@"失败:%d",Id);
+    } progress:^(NSInteger failCount,NSInteger completeCount, NSInteger totoalCount) {
+        NSLog(@"进度:%ld,%ld",completeCount,totoalCount);
+        if(completeCount == totoalCount){
+            UILocalNotification* localNotification = [[UILocalNotification alloc] init];
+            localNotification.alertBody = @"Download Complete!";
+            localNotification.alertAction = @"Background Transfer Download!";
+            //On sound
+            localNotification.soundName = UILocalNotificationDefaultSoundName;
+            //increase the badge number of application plus 1
+            localNotification.applicationIconBadgeNumber = [[UIApplication sharedApplication] applicationIconBadgeNumber] + 1;
+            [[UIApplication sharedApplication] presentLocalNotificationNow:localNotification];
+        }
+    }];
+    __weak typeof(self) weakSelf = self;
+    sessionManager.progressBlock = ^(int Id,NSURLSessionDownloadTask *task){
+        switch (Id) {
+            case 1:
+                [weakSelf.progress setProgressWithDownloadProgressOfTask:task animated:YES];
+                break;
+            case 2:
+                [weakSelf.progress1 setProgressWithDownloadProgressOfTask:task animated:YES];
+                break;
+            case 3:
+                [weakSelf.progress2 setProgressWithDownloadProgressOfTask:task animated:YES];
+                break;
+            default:
+                break;
+        }
+    };
+    /*
     [sessionManager downloadWithModels:_models success:^(int Id) {
         NSLog(@"成功:%d",Id);
     } failure:^(int Id) {
@@ -87,10 +130,9 @@
     } allDownCompletion:^{
         NSLog(@"全部下载完成");
     }];
-    
+    */
 }
 - (IBAction)pause:(id)sender {
-    
     [sessionManager LBcontinue];
 }
 - (IBAction)stop:(id)sender {

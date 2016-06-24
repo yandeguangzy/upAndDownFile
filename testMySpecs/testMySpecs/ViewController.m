@@ -43,14 +43,20 @@
     model2.Id = 2;
     
     
+    
+    
     Model *model3 = [[Model alloc] init];
+//    model3.filaName = @"BGTransferDemo.zip";
+//    model3.SavePath = [path stringByAppendingString:@"/BGTransferDemo.zip"];
+//    model3.url = @"https://dl.dropboxusercontent.com/u/2857188/BGTransferDemo.zip";
+    model3.Id = 3;
     model3.filaName = @"QQ_4.2.1_mac.dmg";
     model3.SavePath = [path stringByAppendingString:@"/QQ_4.2.1_mac.dmg"];
     model3.url = @"http://sw.bos.baidu.com/sw-search-sp/software/bfe69c1ecac/QQ_4.2.1_mac.dmg";
-    model3.Id = 3;
     
-    [_models addObject:model];
+    
     [_models addObject:model2];
+    [_models addObject:model];
     [_models addObject:model3];
     
     _progress.progress = 0.0f;
@@ -65,16 +71,6 @@
 
 
 - (IBAction)strat:(id)sender {
-    [sessionManager uploadWithModels:nil Info:nil Infosuccess:^(NSError *error, AFHTTPRequestOperation *operation) {
-        NSLog(@"回调二");
-    } success:^(int Id) {
-        
-    } failure:^(int Id) {
-        
-    } progress:^(NSInteger failCount, NSInteger completeCount, NSInteger totoalCount) {
-        
-    }];
-    return;
     [sessionManager downloadWithModels:_models success:^(int Id) {
         NSLog(@"成功:%d",Id);
     } failure:^(int Id) {

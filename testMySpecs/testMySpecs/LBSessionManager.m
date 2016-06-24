@@ -59,6 +59,7 @@
 - (void) downloadWithModel:(Model *)model{
     DownLoad *download = [[DownLoad alloc] init];
     __weak typeof(self) weakSelf = self;
+    
     [download downloadWithM:model success:^(int Id) {
         if(weakSelf.successBlock){
             weakSelf.successBlock(Id);
@@ -92,7 +93,7 @@
     }else{
         for (Model *model in self.models){
             if([self countOfDownloading] < _MaxCount){
-                if(model.loadComplete == NO && model.inQueue == NO){
+                if(model.loadComplete == NO && model.inQueue == NO && model.fail == NO){
                     NSInvocationOperation *operation = [[NSInvocationOperation alloc]initWithTarget:self selector:@selector(downloadWithModel:) object:model];
                     [self.queue addOperation:operation];
                     model.inQueue = YES;

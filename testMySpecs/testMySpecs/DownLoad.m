@@ -8,9 +8,132 @@
 
 #import "DownLoad.h"
 #import "AFNetworking.h"
+#import "AppDelegate.h"
 
+@interface DownLoad()
+
+@property (nonatomic, strong) NSURLSession *session;
+@property (nonatomic , strong) Model *model;
+@end
 
 @implementation DownLoad
+
+- (NSURLSession *)backgroundSession
+{
+    //Use dispatch_once_t to create only one background session. If you want more than one session, do with different identifier
+   // static NSURLSession *session = nil;
+   // static dispatch_once_t onceToken;
+   // dispatch_once(&onceToken, ^{
+        NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration backgroundSessionConfigurationWithIdentifier:[NSString stringWithFormat:@"%d",_model.Id]];
+        //NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration backgroundSessionConfiguration:@"com.yourcompany.appId.BackgroundSession"];
+    
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:nil];
+   // });
+    return session;
+}
+
+- (void) beginDownload:(Model *)model
+               success:(void (^)(int Id))success
+               failure:(void (^)(int Id))fail
+              progress:(void (^)(int Id,NSURLSessionDownloadTask *task))progress
+{
+    self.successBlock = success;
+    self.failBlock = fail;
+    self.progressBlock = progress;
+    _model = model;
+    
+    NSURL *downloadURL = [NSURL URLWithString:model.url];
+    NSURLRequest *request = [NSURLRequest requestWithURL:downloadURL];
+    self.session = [self backgroundSession];
+    model.downloadTask = [self.session downloadTaskWithRequest:request];
+    [model.downloadTask resume];
+}
+
+- (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask
+didFinishDownloadingToURL:(NSURL *)location{
+    NSLog(@"haahhahah");
+    __block NSError *error;
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    NSString *destinationFilename = downloadTask.originalRequest.URL.lastPathComponent;
+    NSArray *URLs = [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
+    NSURL * docDirectoryURL = [URLs objectAtIndex:0];
+    NSURL *destinationURL = [docDirectoryURL URLByAppendingPathComponent:destinationFilename];
+    
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        if ([fileManager fileExistsAtPath:[destinationURL path]]) {
+            [fileManager removeItemAtURL:destinationURL error:nil];
+        }
+        [fileManager copyItemAtURL:location
+                             toURL:destinationURL
+                             error:&error];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            BOOL success = [fileManager copyItemAtURL:location
+                                                toURL:destinationURL
+                                                error:&error];
+            
+//            _model.inQueue = NO;
+//            if(success){
+//                NSLog(@"复制成功");
+//                _model.loadComplete = YES;
+//                NSLog(@"Download finished successfully.");
+//                self.successBlock(_model.Id);
+//                
+//            }else{
+//                NSLog(@"复制失败");
+//                _model.fail = YES;
+//                NSLog(@"Download completed with error: %@", [error localizedDescription]);
+//                self.failBlock(_model.Id);
+//            }
+//            
+        });
+        AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+        if (appDelegate.backgroundSessionCompletionHandler) {
+            
+            void (^completionHandler)() = appDelegate.backgroundSessionCompletionHandler;
+            
+            appDelegate.backgroundSessionCompletionHandler = nil;
+            
+            completionHandler();
+            
+        }
+    });
+    
+    
+    
+}
+
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task
+didCompleteWithError:(NSError *)error{
+    _model.inQueue = NO;
+    if (error != nil) {
+        _model.fail = YES;
+        NSLog(@"Download completed with error: %@", [error localizedDescription]);
+        self.failBlock(_model.Id);
+    }
+    else{
+        _model.loadComplete = YES;
+        
+
+        NSLog(@"Download finished successfully.");
+        self.successBlock(_model.Id);
+    }
+}
+
+
+
+-(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite{
+    NSLog(@"%@,%ld,%lld,%lld,%lld",session.configuration.identifier,downloadTask.taskIdentifier,bytesWritten,totalBytesWritten,totalBytesExpectedToWrite);
+    self.progressBlock(_model.Id,_model.downloadTask);
+}
+
+
+
+
+
+
 
 - (void) downloadWithM:(Model *)model
                success:(void (^)(int Id))success
@@ -31,6 +154,7 @@
     model.downloadTask = [session downloadTaskWithRequest:request progress:nil destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
         return [NSURL fileURLWithPath:model.SavePath];
     } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
+        NSLog(@"zaozaozoa");
         model.inQueue = NO;
         if(error){
             NSLog(@"%@",error);
@@ -44,6 +168,17 @@
             if(weakSelf.successBlock){
                 weakSelf.successBlock(model.Id);
             }
+        }
+        
+        AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+        if (appDelegate.backgroundSessionCompletionHandler) {
+            
+            void (^completionHandler)() = appDelegate.backgroundSessionCompletionHandler;
+            
+            appDelegate.backgroundSessionCompletionHandler = nil;
+            
+            completionHandler();
+            
         }
     }];
     

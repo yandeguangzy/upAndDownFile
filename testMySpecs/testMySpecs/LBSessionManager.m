@@ -110,7 +110,7 @@
 
 - (void) uploadWithModels:(NSMutableArray *)models
                      Info:(NSDictionary *)info
-              Infosuccess:(void (^)(NSError *error,AFHTTPRequestOperation *operation))infoComplete
+              Infosuccess:(void (^)(int Id))infoComplete
                   success:(void (^)(int Id))success
                   failure:(void (^)(int Id))fail
                  progress:(void (^)(NSInteger failCount,NSInteger completeCount,NSInteger totoalCount))totalProgressBlock{
@@ -194,13 +194,21 @@
 
 #pragma mark - uploadInfo
 - (void) uploadInfo:(void (^)())infoCompltion{
-    AFHTTPRequestOperationManager *httpManager = [AFHTTPRequestOperationManager manager];
-    [httpManager POST:@"" parameters:self.info success:^(AFHTTPRequestOperation * _Nonnull operation, id  _Nonnull responseObject) {
-        self.infoCompletion(nil, operation);
-        infoCompltion();
-    } failure:^(AFHTTPRequestOperation * _Nullable operation, NSError * _Nonnull error) {
-        self.infoCompletion(error, operation);
+    DownLoad *download = [[DownLoad  alloc] init];
+    [download postData:self.info success:^(int Id) {
+        self.infoCompletion(Id);
+    } failure:^(int Id) {
+        self.infoCompletion(Id);
     }];
+    
+    
+//    AFHTTPRequestOperationManager *httpManager = [AFHTTPRequestOperationManager manager];
+//    [httpManager POST:@"" parameters:self.info success:^(AFHTTPRequestOperation * _Nonnull operation, id  _Nonnull responseObject) {
+//        self.infoCompletion(nil, operation);
+//        infoCompltion();
+//    } failure:^(AFHTTPRequestOperation * _Nullable operation, NSError * _Nonnull error) {
+//        self.infoCompletion(error, operation);
+//    }];
 }
 
 

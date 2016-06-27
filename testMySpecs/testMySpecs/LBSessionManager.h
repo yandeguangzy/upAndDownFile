@@ -17,7 +17,7 @@
 @property(nonatomic, copy) void (^progressBlock)(int Id,NSURLSessionDownloadTask *task);
 @property(nonatomic, copy) void (^totalProgressBlock)(NSInteger failCount,NSInteger completeCount,NSInteger totoalCount);
 @property(nonatomic, copy) void (^allDownCompletion)();
-@property(nonatomic, copy) void (^infoCompletion)(NSError *error,AFHTTPRequestOperation *operation);
+@property(nonatomic, copy) void (^infoCompletion)(int Id);
 
 /**
  *  @author Yan deguang, 16-06-22 17:06:24
@@ -70,7 +70,7 @@
 
 - (void) uploadWithModels:(NSMutableArray *)models
                      Info:(NSDictionary *)info
-              Infosuccess:(void (^)(NSError *error,AFHTTPRequestOperation *operation))infoComplete
+              Infosuccess:(void (^)(int Id))infoComplete
                   success:(void (^)(int Id))success
                   failure:(void (^)(int Id))fail
                  progress:(void (^)(NSInteger failCount,NSInteger completeCount,NSInteger totoalCount))totalProgressBlock;

@@ -252,4 +252,52 @@ didCompleteWithError:(NSError *)error{
     
 }
 
+#pragma mark - DataTask
+- (void) postData:(NSDictionary *) Info
+          success:(void (^)(int Id))success
+          failure:(void (^)(int Id))fail{
+    self.successBlock = success;
+    self.failBlock = fail;
+    
+    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration backgroundSessionConfiguration:@"com.lubaocar."];
+    AFURLSessionManager *sManager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
+    
+    AFHTTPRequestSerializer *serialization = [AFHTTPRequestSerializer serializer];
+    NSURLRequest *requets = [serialization requestWithMethod:@"POST" URLString:nil parameters:Info error:nil];
+    
+    
+    
+//    NSURLRequest *request = [serialization multipartFormRequestWithMethod:@"POST"URLString:model.url parameters:nil constructingBodyWithBlock:^(id<AFMultipartFormData>  _Nonnull formData) {
+//        [formData appendPartWithFileURL:[NSURL fileURLWithPath:model.SavePath] name:@"file" error:nil];
+//    } error:nil];
+    __weak typeof(self) weakSelf = self;
+    NSURLSessionDataTask *dataTask = [sManager dataTaskWithRequest:requets completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
+        if(error){
+            NSLog(@"%@",error);
+            if(weakSelf.failBlock){
+                weakSelf.failBlock(10000);
+            }
+        }else{
+            NSLog(@"%@",response);
+            if(weakSelf.successBlock){
+                weakSelf.successBlock(10000);
+            }
+        }
+        
+        AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+        if (appDelegate.backgroundSessionCompletionHandler) {
+            
+            void (^completionHandler)() = appDelegate.backgroundSessionCompletionHandler;
+            
+            appDelegate.backgroundSessionCompletionHandler = nil;
+            
+            completionHandler();
+            
+        }
+
+    }];
+    [dataTask resume];
+}
+
+
 @end
